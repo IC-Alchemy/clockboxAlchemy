@@ -35,6 +35,57 @@ void sendDigitalOut(bool state) {
   }
 }
 
+
+void toggleStartStop() {
+  if (currentState) {
+    Serial.write(0xFC);
+    sendDigitalOut(false);
+    currentState = false;
+    
+  } else {
+    uClock.stop();
+    delay(20);
+    currentState = true;
+    needsToSendMidiStart = true;
+    uClock.start();  
+  }
+}
+
+float readTempoFromPotentiometer(int pin) {
+  int tempoPot = analogRead(pin);
+  float tempo = ((float)tempoPot/1024.f)*210.f + 30.f;
+  return tempo;
+}
+
+void setClockTempo(float tempo) {
+  uClock.setTempo(tempo);
+}
+
+void handleSwitchState() {
+  int switchState = readSwitchState(2);
+  if (isSwitchPressed(switchState) && !currentSwitchState) {
+    toggleStartStop();
+    currentSwitchState = true;
+  }
+  
+  if (isSwitchReleased(switchState)) {
+    currentSwitchState = false;
+  }
+}
+
+int readSwitchState(int pin) {
+  return digitalRead(pin);
+}
+
+bool isSwitchPressed(int switchState) {
+  return switchState == HIGH;
+}
+
+bool isSwitchReleased(int switchState) {
+  return switchState == LOW;
+}
+
+
 void setup() {
 
   Serial.begin(31250);
@@ -56,37 +107,11 @@ void setup() {
   uClock.start();
 }
 
-void toggleStartStop() {
-  if (currentState) {
-    Serial.write(0xFC);
-    sendDigitalOut(false);
-    currentState = false;
-    
-  } else {
-    uClock.stop();
-    delay(20);
-    currentState = true;
-    needsToSendMidiStart = true;
-    uClock.start();  
-  }
-}
 
-void loop() {
 
-  int tempoPot = analogRead(A0);
-
-  float tempo = ((float)tempoPot/1024.f)*210.f + 30.f;
-
-  uClock.setTempo(tempo);
-  int switchState = digitalRead(2);
-
-  if ((switchState == HIGH) && !currentSwitchState) {
-    toggleStartStop();
-    currentSwitchState = true;
-  }
-  
-  if (switchState == LOW) {
-    currentSwitchState = false;
-  }
-
+void loop() {                        /////  loop
+  float tempo = readTempoFromPotentiometer(A0);
+  setClockTempo(tempo);
+  handleSwitchState();
+  delay(30);
 }
