@@ -89,5 +89,4 @@ void loop() {
     currentSwitchState = false;
   }
 
-  delay(30);
 }
